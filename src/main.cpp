@@ -6,41 +6,153 @@
 
 #define PIN 6
 
-
+// Functions
 uint32_t Wheel(byte WheelPos);
 void colorWipe(uint32_t c, uint8_t wait);
 void rainbow(uint8_t wait);
 void rainbowCycle(uint8_t wait);
+void theaterChase(uint32_t c, uint8_t wait);
+void theaterChaseRainbow(uint8_t wait);
+void colorAll(uint32_t color);
+void turnOff();
+void setBrightness(uint32_t level);
+void loadMail();
+void decodeMail();
+void clearMail();
+
+// Lights
+int pixels          = 4 * 14;
+int state           = 0;
+uint32_t red        = 0;
+uint32_t green      = 0;
+uint32_t blue       = 0;
+uint32_t light      = 0;
 
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(50, PIN, NEO_GRB + NEO_KHZ800);
+
+// Bluetooth
+char mailbox[50];
+int mb_index = 0;
+bool message_flag = false;
+
+// States
+const int STATE_OFF     = 0;
+const int STATE_GREEN   = 1;
+const int STATE_BLUE    = 2;
+const int STATE_RED     = 3;
+const int STATE_RAIN    = 4;
+const int STATE_CHASE   = 5;
+
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(pixels, PIN, NEO_GRB + NEO_KHZ800);
 
 // ------------------------------- MAIN
 
 
 void setup() {
+  Serial.begin(9600);
+
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
+  state = STATE_OFF;
+  setBrightness(100);
 
 }
 
 void loop() {
-  // Some example procedures showing how to display to the pixels:
- // colorWipe(strip.Color(255, 0, 0), 50); // Red
- // colorWipe(strip.Color(0, 255, 0), 50); // Green
- // colorWipe(strip.Color(0, 0, 255), 50); // Blue
-//colorWipe(strip.Color(0, 0, 0, 255), 50); // White RGBW
-  // Send a theater pixel chase in...
-  //theaterChase(strip.Color(127, 127, 127), 50); // White
-  //theaterChase(strip.Color(127, 0, 0), 50); // Red
-  //theaterChase(strip.Color(0, 0, 127), 50); // Blue
 
-  //rainbow(20);
-  rainbowCycle(1);
-  //theaterChaseRainbow(50);
+  loadMail();
+
+
 }
 
+
 // ------------------------------- FUN
+
+void loadMail() {
+  if (Serial.available()) {
+
+        char c = Serial.read();
+        mailbox[mb_index++] = c;
+
+        if (mailbox[mb_index-1] == '!') //end of message
+          decodeMail();
+
+      }
+
+}
+
+// 0 - 255
+// red:green:blue:fade:!
+void decodeMail() {
+
+  Serial.println(mailbox);
+  char delimiter = ':';
+  char end = '!';
+
+  String values[4];
+  int val_index = 0;
+  String v = "";
+
+  char c;
+  int mail_index = 0;
+
+  c = mailbox[0];
+  while (c != end) {
+
+    // Add value to list and move to next
+    if (c == delimiter) {
+      values[val_index] = v;
+      v = "";
+      val_index++;
+
+    } else
+      v = v + c;
+
+    mail_index++;
+    c = mailbox[mail_index];
+
+  }
+
+  red     = values[0].toInt();
+  green   = values[1].toInt();
+  blue    = values[2].toInt();
+  light   = values[3].toInt();
+
+  colorAll(strip.Color(red, green, blue));
+  setBrightness(light);
+
+
+  clearMail();
+
+
+}
+
+void clearMail() {
+  memset(mailbox, 0, sizeof(mailbox));
+  mb_index = 0;
+  mailbox[0] = 0;
+}
+
+// 0 - 255
+void setBrightness(uint32_t level) {
+  strip.setBrightness(level);
+}
+
+void turnOff() {
+  for (uint16_t i = 0 ; i < strip.numPixels() ; i++)
+    strip.setPixelColor(i, 0);
+
+}
+
+void colorAll(uint32_t color) {
+  for (uint16_t i = 0 ; i < strip.numPixels() ; i++)
+    strip.setPixelColor(i, color);
+
+  strip.show();
+
+
+}
 
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
