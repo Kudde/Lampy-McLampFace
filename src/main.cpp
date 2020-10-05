@@ -23,11 +23,10 @@ void clearMail();
 // Lights
 int pixels          = 4 * 14;
 int state           = 0;
-uint32_t red        = 0;
-uint32_t green      = 0;
+uint32_t red        = 255;
+uint32_t green      = 64;
 uint32_t blue       = 0;
-uint32_t light      = 0;
-
+uint32_t light      = 100;
 
 
 // Bluetooth
@@ -42,6 +41,7 @@ const int STATE_BLUE    = 2;
 const int STATE_RED     = 3;
 const int STATE_RAIN    = 4;
 const int STATE_CHASE   = 5;
+const int STATE_PULSE   = 6;
 
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(pixels, PIN, NEO_GRB + NEO_KHZ800);
@@ -55,7 +55,9 @@ void setup() {
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
   state = STATE_OFF;
-  setBrightness(100);
+  colorAll(strip.Color(red, green, blue));
+  setBrightness(light);
+
 
 }
 
